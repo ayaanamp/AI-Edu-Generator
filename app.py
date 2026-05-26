@@ -4,31 +4,95 @@ import json
 import random
 import streamlit as st
 
-# Set Streamlit Page Layout Config
+# ---------------- PAGE CONFIG ----------------
+
 st.set_page_config(
     page_title="Lumina AI Study Companion",
     page_icon="🎓",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# Custom Tailwind/Styling Injector
-st.markdown("""
+# ---------------- CUSTOM CSS ----------------
+
+CUSTOM_CSS = """
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
 <style>
-    .card-title {
-        font-family: 'Times New Roman', serif;
-        font-style: italic;
-    }
-    .stButton>button {
-        border-radius: 12px;
-        transition: all 0.3s;
-    }
-    .stButton>button:hover {
-        border-color: #10b981 !important;
-        color: #10b981 !important;
-    }
+
+/* Hide Streamlit UI */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+[data-testid="stToolbar"] {
+    display: none;
+}
+
+/* App Background */
+.stApp {
+    background-color: #050816;
+    color: white;
+}
+
+/* Global Font */
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Main Container */
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+    padding-left: 2rem;
+    padding-right: 2rem;
+    max-width: 100%;
+}
+
+/* Buttons */
+.stButton > button {
+    border-radius: 12px;
+    border: 1px solid #10b981;
+    background-color: #111827;
+    color: white;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.stButton > button:hover {
+    background-color: #10b981;
+    color: black;
+}
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+    background-color: #0b1120;
+}
+
+/* File Upload */
+[data-testid="stFileUploader"] {
+    background-color: #111827;
+    border-radius: 16px;
+    border: 1px solid #1f2937;
+    padding: 1rem;
+}
+
+/* Expanders */
+.streamlit-expanderHeader {
+    background-color: #111827;
+    border-radius: 10px;
+}
+
+/* Radio Buttons */
+div[role="radiogroup"] {
+    background-color: #111827;
+    padding: 10px;
+    border-radius: 12px;
+}
+
 </style>
-""", unsafe_allow_html=True)
+"""
+
+st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 # Try loading PDF extraction library, provide native text box if library is not accessible
 try:
