@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import random
 import streamlit as st
 
 # Set Streamlit Page Layout Config
@@ -46,59 +47,115 @@ except ImportError:
 
 # --- Helper: Generate Offline Fallback Data ---
 def generate_local_fallbacks(pdf_text: str, filename: str):
-    # Clean up text and divide into list sentences
-    cleaned_text = re.sub(r'\s+', ' ', pdf_text).strip()
-    sentences = [s.strip() for s in re.split(r'[.!?]+', cleaned_text) if len(s.strip()) > 25]
+    # Split into lines and filter out watermark lines, header copyright debris, and page labels
+    lines = pdf_text.split('\n')
+    filtered_lines = []
+    
+    junk_patterns = [
+        r"(?i)downloaded\s+from",
+        r"(?i)ncertbooks",
+        r"(?i)ncert",
+        r"(?i)not\s+to\s+be\s+republished",
+        r"(?i)www\.",
+        r"(?i)http",
+        r"(?i)\.com",
+        r"(?i)page\s+\d+",
+        r"(?i)class\s+\d+",
+        r"(?i)chapter\s+\d+",
+        r"(?i)syllabus",
+        r"^[0-9\s\-\.\/]+$"
+    ]
+    
+    for line in lines:
+        line_stripped = line.strip()
+        if not line_stripped:
+            continue
+        # Skip if matching junk watermark patterns
+        if any(re.search(pat, line_stripped) for pat in junk_patterns):
+            continue
+        filtered_lines.append(line_stripped)
+        
+    cleaned_text = " ".join(filtered_lines)
+    # Split using sentence endpoints [.!?]
+    raw_sentences = re.split(r'[.!?]+', cleaned_text)
+    
+    seen = set()
+    unique_clean_sentences = []
+    for s in raw_sentences:
+        s_clean = re.sub(r'\s+', ' ', s).strip()
+        # Keep only sentences with real educational length
+        if len(s_clean) < 35:
+            continue
+        if len(s_clean) > 300:
+            s_clean = s_clean[:297] + "..."
+            
+        s_lower = s_clean.lower()
+        if s_lower not in seen:
+            seen.add(s_lower)
+            unique_clean_sentences.append(s_clean)
+            
+    # Polished default concepts to supplement low-text watermarked PDFs
+    default_cards = [
+        "Metacognition is defined as 'thinking about thinking', allowing learners to monitor and adjust their own cognitive strategies.",
+        "Active Recall involves testing your memory by actively retrieving information rather than educationally passive re-reading.",
+        "Spaced Repetition leverages the psychological spacing effect, reviewing study cards at optimal intervals to halt the forgetting curve.",
+        "The Feynman Technique is a mental model where you master a concept by explaining it in simple, jargon-free terms to a child.",
+        "Cognitive Load Theory suggests that working memory has a finite capacity, meaning learning materials should minimize unnecessary noise.",
+        "Interleaving is a study technique where you mix different topics or practices, improving the brain's ability to distinguish concepts.",
+        "Dual Coding theory states that combining visual aids with textual information creates separate cognitive paths, enhancing keycard retrieval.",
+        "Sleep plays a critical role in memory consolidation, transferring short-term learning into stable long-term brain synaptic pathways."
+    ]
+    
+    final_sentences = unique_clean_sentences[:]
+    # If we extracted empty/low text, blend in high-quality cognitive study science keycards
+    if len(final_sentences) < 8:
+        needed = 8 - len(final_sentences)
+        for i in range(needed):
+            final_sentences.append(default_cards[i % len(default_cards)])
+            
+    # Slice to a clean maximum of 12 cards
+    final_sentences = final_sentences[:12]
     
     keycards = []
-    mcqs = []
-    
-    # Filter sentences with definition or critical phrases
-    candidates = [
-        s for s in sentences if any(term in s.lower() for term in ["is", "are", "defined", "important", "process", "key", "main"])
-    ]
-    if not candidates:
-        candidates = sentences
-
-    cards_count = min(10, max(6, len(candidates)))
-    if cards_count > 0:
-        for i in range(cards_count):
-            text = candidates[i % len(candidates)]
-            keycards.append({
-                "id": f"local-card-{i+1}",
-                "text": text[:180] + ("..." if len(text) > 180 else "")
-            })
-            
-    # Standard Academic Cards fallback if text was too small
-    if len(keycards) < 4:
-        default_academic_phrases = [
-            "Artificial Intelligence (AI) simulates human cognitive procedures using complex modern computer systems.",
-            "TypeScript is a strongly typed superset of JavaScript that compiles down to standard browser script.",
-            "Vite serves code with native ES module structures, ensuring near-instant hot reloads during client development.",
-            "Streamlit is a powerful open-source Python framework that serves data-driven dashboards with zero front-end coding.",
-            "GitHub provides version control systems letting teams collaborate concurrently via branch pull requests and merges.",
-            "Secure production server configurations mandate hosting sensitive environment keys separately from client files."
-        ]
-        for i, text in enumerate(default_academic_phrases):
-            keycards.append({
-                "id": f"sec-card-{i+1}",
-                "text": text
-            })
-
-    # Generate synthetic MCQs
-    for idx, card in enumerate(keycards):
-        words = card["text"].split()
-        subject = "This concept"
-        if len(words) > 2:
-            subject = " ".join(words[:3]).replace(',', '').replace('.', '')
-            
-        correct_ans = idx % 4
-        options = ["Incorrect distractor description A", "Incorrect distractor description B", "Incorrect distractor description C", "Incorrect distractor description D"]
-        options[correct_ans] = f"Correct definition matching details: {card['text'][:80]}..."
+    for i, text in enumerate(final_sentences):
+        keycards.append({
+            "id": f"local-card-{i+1}",
+            "text": text
+        })
         
+    mcqs = []
+    for idx, card in enumerate(keycards):
+        text_val = card["text"]
+        words = text_val.split()
+        subject = " ".join(words[:3]).replace(',', '').replace('.', '') if len(words) > 2 else "This concept theme"
+        
+        # Position the correct answer at index 0..3 deterministically based on card position
+        correct_ans = idx % 4
+        
+        # Grab other unique statements from this card pool as realistic, contextually-sound options
+        other_cards = [c["text"] for c in keycards if c["text"] != text_val]
+        
+        # Pull 3 random distractors from other keycards to construct highly realistic multiple choice options
+        random.seed(42 + idx)
+        distractors = random.sample(other_cards, min(len(other_cards), 3)) if len(other_cards) >= 3 else []
+        
+        while len(distractors) < 3:
+            candidate = default_cards[random.randint(0, len(default_cards) - 1)]
+            if candidate != text_val and candidate not in distractors:
+                distractors.append(candidate)
+                
+        options = [""] * 4
+        dist_idx = 0
+        for o in range(4):
+            if o == correct_ans:
+                options[o] = text_val
+            else:
+                options[o] = distractors[dist_idx]
+                dist_idx += 1
+                
         mcqs.append({
             "id": f"local-mcq-{idx+1}",
-            "question": f"Which statement best formalizes the academic theme for the section '{subject}'?",
+            "question": f"Which statement best formalizes the academic description or definition for section '{subject}'?",
             "options": options,
             "correctAnswer": correct_ans
         })
