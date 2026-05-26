@@ -27,7 +27,7 @@ st.markdown("""
         color: #10b981 !important;
     }
 </style>
-""", unsafe_allow_name=True)
+""", unsafe_allow_html=True
 
 # Try loading PDF extraction library, provide native text box if library is not accessible
 try:
