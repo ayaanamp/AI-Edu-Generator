@@ -38,79 +38,186 @@ app.use(express.json({ limit: '50mb' }));
 function generateLocalFallbacks(pdfText: string, filename: string) {
   console.log("[Local Parser] Running offline local-text synthesis engine");
   
-  // Clean text and split into sentences
-  const cleanedText = pdfText.replace(/\s+/g, " ").trim();
-  const sentences = cleanedText.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 25);
-  
-  const keycards: Array<{ id: string, text: string }> = [];
-  const mcqs: Array<{ id: string, question: string, options: string[], correctAnswer: number }> = [];
+  const filenameLower = filename.toLowerCase();
+  const textLower = pdfText.toLowerCase();
 
-  // Identify high-value summary sentences
-  const highValueSentences = sentences.filter(s => {
+  const lines = pdfText.split('\n');
+  const filteredSentences: string[] = [];
+  const junkPatterns = [
+    /downloaded\s+from/i,
+    /ncertbooks/i,
+    /ncert/i,
+    /not\s+to\s+be\s+republished/i,
+    /www\./i,
+    /http/i,
+    /\.com/i,
+    /page\s+\d+/i,
+    /class\s+\d+/i,
+    /chapter\s+\d+/i,
+    /syllabus/i,
+    /^\s*[0-9\s\-./]+\s*$/
+  ];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (junkPatterns.some(pat => pat.test(trimmed))) continue;
+    
+    // Skip potential Table of Contents lines
+    if (trimmed.includes("....") || trimmed.includes(". . .")) continue;
+    
+    // Skip potential chapter and TOC title lines Check
+    if (/^\d+/.test(trimmed) && trimmed.split(/\s+/).length < 10) continue;
+    
+    // Skip headers not ending in period/exclamation/question unless long
+    if (trimmed.length < 70 && !/[.!?]$/.test(trimmed)) continue;
+
+    const sClean = trimmed.replace(/\s+/g, " ").trim();
+    if (sClean.length >= 35) {
+      filteredSentences.push(sClean);
+    }
+  }
+
+  const seen = new Set<string>();
+  const uniqueSentences: string[] = [];
+  for (const s of filteredSentences) {
     const sLower = s.toLowerCase();
-    return sLower.includes("is") || sLower.includes("are") || sLower.includes("defined") || 
-           sLower.includes("important") || sLower.includes("process") || sLower.includes("main") || 
-           sLower.includes("key") || sLower.includes("component") || sLower.includes("development");
-  });
-
-  const candidates = highValueSentences.length > 0 ? highValueSentences : sentences;
-  const cardsToGenerate = Math.min(12, Math.max(8, candidates.length));
-
-  // Generate Keycards dynamically from candidate sentences
-  for (let i = 0; i < cardsToGenerate; i++) {
-    const text = candidates[i % candidates.length];
-    keycards.push({
-      id: `local-card-${i + 1}`,
-      text: text.substring(0, 180) + (text.length > 180 ? "..." : "")
-    });
+    if (!seen.has(sLower)) {
+      seen.add(sLower);
+      if (s.length > 300) {
+        uniqueSentences.push(s.substring(0, 297) + "...");
+      } else {
+        uniqueSentences.push(s);
+      }
+    }
   }
 
-  // If we had no substantial text extracted, populate default academic general knowledge structures
-  if (keycards.length < 5) {
-    const genericCards = [
-      "Artificial Intelligence (AI) refers to the simulation of human intelligence processes by machines, especially computer systems.",
-      "The primary goal of machine learning is to build algorithms that can receive input data and use statistical analysis to predict an output.",
-      "Vite is a modern frontend build tool that is extremely fast, leveraging native ES modules to compile code in milliseconds.",
-      "React relies on a Virtual DOM structure to perform high-efficiency responsive rendering, bypassing slower browser DOM actions.",
-      "TypeScript is a strongly typed programming language that builds on JavaScript, giving you compile-time error catching.",
-      "Full-stack web application architectures safely buffer server-side secrets (like Gemini keys) away from client browser inspect tools.",
-      "Streamlit is a lightweight Python framework used to prototype interactive data applications with minimal user interface code.",
-      "Git branches allow academic collaborators to build features independently and merge safely into the main repository branch."
+  // Choose themed fallback pool
+  const isPhysics = filenameLower.includes("phys") || filenameLower.includes("quantum") || filenameLower.includes("mechanic") || textLower.includes("phys") || textLower.includes("quantum");
+  const isBioChem = filenameLower.includes("chem") || filenameLower.includes("bio") || filenameLower.includes("dna") || filenameLower.includes("cell") || textLower.includes("chem") || textLower.includes("bio") || textLower.includes("cell");
+  const isCS = filenameLower.includes("comp") || filenameLower.includes("code") || filenameLower.includes("program") || filenameLower.includes("typescript") || filenameLower.includes("web") || textLower.includes("vite") || textLower.includes("react") || textLower.includes("code");
+
+  let defaultCards: string[] = [];
+  if (isPhysics) {
+    defaultCards = [
+      "Wave-Particle Duality states that every quantum entity may be described as either a particle or a wave physical construct.",
+      "Heisenberg's Uncertainty Principle asserts a fundamental limit to the precision with which position and momentum can be known simultaneously.",
+      "Schrödinger's Equation is a linear partial differential equation that governs the wave function of a quantum system.",
+      "Quantum Entanglement is a phenomenon where physical particles remain interconnected, such that actions on one instantly affect the other.",
+      "Planck's Constant relates the energy of a photon to its electromagnetic frequency, serving as a fundamental constant in quantum mechanics.",
+      "Superposition is the ability of a quantum physical system to be in multiple states simultaneously until a measurement collapses it.",
+      "The Photoelectric Effect is the emission of electrons when electromagnetic radiation (such as light) hits a material surface.",
+      "The Copenhagen Interpretation suggests that physical systems do not have definite physical properties prior to being measured.",
+      "Quantum Tunneling is a quantum mechanical phenomenon where a particle transition occurs directly through a potential energy barrier.",
+      "Blackbody Radiation refers to the stable spectrum of light emitted by an idealized opaque object in thermal equilibrium.",
+      "The Zeeman Effect is the splitting of a spectral line into several distinct components in the presence of a static magnetic field.",
+      "De Broglie Wave theory proposes that all moving matter exhibits wave-like characteristics, relating momentum to wavelength."
     ];
-    genericCards.forEach((text, i) => {
-      keycards.push({ id: `sec-card-${i + 1}`, text });
-    });
+  } else if (isBioChem) {
+    defaultCards = [
+      "Mitochondria are double-membraned cellular organelles responsible for generating most of the chemical energy (ATP) needed by the cell.",
+      "Photosynthesis is the metabolic cellular process by which green plants utilize sunlight to synthesize nutrients from carbon dioxide and water.",
+      "DNA (Deoxyribonucleic Acid) is a double-helix molecule that carries the genetic instructions used in the growth and reproduction of all organisms.",
+      "Enzymes are protein macromolecules that act as highly selective catalysts, accelerating chemical reactions within biological systems.",
+      "Mitosis is the segment of the cell cycle where replicated chromosomes are separated into two new nuclei, leading to identical cells.",
+      "Active Transport is the movement of ions or molecules across a cell membrane into a region of higher concentration, requiring ATP energy.",
+      "Homeostasis is the state of steady internal physical and chemical conditions maintained in active biological systems.",
+      "Ribosomes are specialized molecular machines that serve as the site of biological protein synthesis, translating mRNA lines.",
+      "The Golgi Apparatus is a cellular organelle that packages and sorts proteins for secretion, playing a key role in the endomembrane system.",
+      "Cellular Respiration is a set of metabolic reactions that convert biochemical energy from nutrients into adenosine triphosphate.",
+      "Transcription is the first step of gene expression, where a particular segment of DNA is copied into RNA by the enzyme RNA polymerase.",
+      "Ecosystem Ecology studies the flow of energy and organic matter through living organisms and surrounding non-living environments."
+    ];
+  } else if (isCS) {
+    defaultCards = [
+      "TypeScript is a strongly typed superset of JavaScript that compiles down to highly compatible browser script.",
+      "Vite serves workspace code with native ES module structures, ensuring near-instant hot reloads during client side testing.",
+      "React relies on a Virtual DOM structure to perform high-efficiency responsive rendering, bypassing slower browser DOM actions.",
+      "Full-Stack Web Servers secure confidential secrets, like Gemini API keys, in server-side memory away from browser inspect tools.",
+      "Streamlit is a lightweight open-source Python framework that serves interactive data dashboards with minimal front-end coding.",
+      "Git Branches allow academic or engineering collaborators to build features independently and merge safely into the main code tree.",
+      "Relational Databases organize structured tables using primary and foreign keys, supporting standard SQL query structures.",
+      "Caching is the process of storing copies of files or data streams in temporary storage locations for faster request resolutions.",
+      "REST APIs establish standard stateless communication between client apps and backend servers using HTTP GET, POST, PUT, and DELETE.",
+      "Object-Oriented Programming (OOP) organizes software design around data objects rather than functions or logic blocks.",
+      "Recursion is a programming technique where a method calls itself to solve smaller sub-instances of the same problem.",
+      "Computational Complexity (Big O) characterizes the execution time or space requirements of an algorithm as input scales."
+    ];
+  } else {
+    defaultCards = [
+      "Metacognition is defined as 'thinking about thinking', allowing learners to monitor and adjust their own cognitive strategies.",
+      "Active Recall involves testing your memory by actively retrieving information rather than educationally passive re-reading.",
+      "Spaced Repetition leverages the psychological spacing effect, reviewing study cards at optimal intervals to halt the forgetting curve.",
+      "The Feynman Technique is a mental model where you master a concept by explaining it in simple, jargon-free terms to a child.",
+      "Cognitive Load Theory suggests that working memory has a finite capacity, meaning learning materials should minimize unnecessary noise.",
+      "Interleaving is a study technique where you mix different topics or practices, improving the brain's ability to distinguish concepts.",
+      "Dual Coding theory states that combining visual aids with textual information creates separate cognitive paths, enhancing keycard retrieval.",
+      "Sleep plays a critical role in memory consolidation, transferring short-term learning into stable long-term brain synaptic pathways.",
+      "Dual-Store Theory suggests that memory begins in the sensory register, is processed in short-term storage, and is moved to long-term memory.",
+      "Elaborative Rehearsal is a learning strategy that involves thinking about the meaning of a term rather than just repeating it.",
+      "The Testing Effect shows that long-term memory is increased when part of the learning period is devoted to retrieving information.",
+      "Self-Explanation is a constructive study technique where learners explain difficult passages out loud to clarify content relationships."
+    ];
   }
 
-  // Generate MCQs dynamically from the keycards
-  keycards.forEach((card, index) => {
-    // Extract a key term or capitalize a random segment of the text
+  const finalSentences = [...uniqueSentences];
+  if (finalSentences.length < 8) {
+    const needed = 12 - finalSentences.length;
+    for (let i = 0; i < needed; i++) {
+      finalSentences.push(defaultCards[i % defaultCards.length]);
+    }
+  }
+
+  const sliceSentences = finalSentences.slice(0, 12);
+  const keycards = sliceSentences.map((text, idx) => ({
+    id: `local-card-${idx + 1}`,
+    text
+  }));
+
+  const mcqs = keycards.map((card, index) => {
     const words = card.text.split(" ");
-    let subject = "This concept";
-    if (words.length > 2) {
-      subject = words.slice(0, 3).join(" ").replace(/[,.:;'"()]/g, "");
+    const subject = words.length > 2 ? words.slice(0, 3).join(" ").replace(/[,.:;'"()]/g, "") : "This core theme";
+    
+    const correctAns = index % 4;
+    const options = ["", "", "", ""];
+    
+    const otherCards = keycards.filter(c => c.text !== card.text).map(c => c.text);
+    
+    // Deterministic pseudo-random distractors for consistency in offline options
+    const distractors: string[] = [];
+    let seed = index;
+    // We want to pull 3 distinct distractors from the unique pool
+    while (distractors.length < 3) {
+      if (otherCards.length > 0) {
+        const itemIdx = (seed + 13) % otherCards.length;
+        const item = otherCards.splice(itemIdx, 1)[0];
+        if (!distractors.includes(item)) {
+          distractors.push(item);
+        }
+      } else {
+        const item = defaultCards[(seed + 7) % defaultCards.length];
+        if (item !== card.text && !distractors.includes(item)) {
+          distractors.push(item);
+        }
+      }
+      seed += 5;
     }
 
-    const correctAns = index % 4;
-    const options = ["Option A", "Option B", "Option C", "Option D"];
-    
-    // Set up option text containing the card or terms
-    options[correctAns] = `Correct statement explaining: ${card.text.substring(0, 80)}...`;
-    
-    // Fill other options with realistic distractors
-    let optionCounter = 1;
+    let distIdx = 0;
     for (let o = 0; o < 4; o++) {
-      if (o !== correctAns) {
-        options[o] = `Alternative option details describing segment sequence ${optionCounter++} of the research document.`;
+      if (o === correctAns) {
+        options[o] = card.text;
+      } else {
+        options[o] = distractors[distIdx++];
       }
     }
 
-    mcqs.push({
+    return {
       id: `local-mcq-${index + 1}`,
-      question: `Which of the following describes the core theme established in section "${subject}"?`,
-      options: options,
+      question: `Which statement best formalizes the academic description or definition for section "${subject}"?`,
+      options,
       correctAnswer: correctAns
-    });
+    };
   });
 
   return { keycards, mcqs };
