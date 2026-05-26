@@ -47,9 +47,12 @@ except ImportError:
 
 # --- Helper: Generate Offline Fallback Data ---
 def generate_local_fallbacks(pdf_text: str, filename: str):
-    # Split into lines and filter out watermark lines, header copyright debris, and page labels
+    filename_lower = filename.lower()
+    text_lower = pdf_text.lower()
+    
+    # 1. Clean the PDF lines, skipping watermarks, pure headers, and Table of Contents entries
     lines = pdf_text.split('\n')
-    filtered_lines = []
+    filtered_sentences = []
     
     junk_patterns = [
         r"(?i)downloaded\s+from",
@@ -63,7 +66,7 @@ def generate_local_fallbacks(pdf_text: str, filename: str):
         r"(?i)class\s+\d+",
         r"(?i)chapter\s+\d+",
         r"(?i)syllabus",
-        r"^[0-9\s\-\.\/]+$"
+        r"^\s*[0-9\s\-\.\/]+\s*$"
     ]
     
     for line in lines:
@@ -73,47 +76,108 @@ def generate_local_fallbacks(pdf_text: str, filename: str):
         # Skip if matching junk watermark patterns
         if any(re.search(pat, line_stripped) for pat in junk_patterns):
             continue
-        filtered_lines.append(line_stripped)
-        
-    cleaned_text = " ".join(filtered_lines)
-    # Split using sentence endpoints [.!?]
-    raw_sentences = re.split(r'[.!?]+', cleaned_text)
-    
-    seen = set()
-    unique_clean_sentences = []
-    for s in raw_sentences:
-        s_clean = re.sub(r'\s+', ' ', s).strip()
-        # Keep only sentences with real educational length
-        if len(s_clean) < 35:
+        # Skip potential Table of Contents lines (containing dot leader chains like "....." or very short sections)
+        if "...." in line_stripped or ". . ." in line_stripped:
             continue
-        if len(s_clean) > 300:
-            s_clean = s_clean[:297] + "..."
+        # Skip potential chapter and toc title lines starting with numbers and of short length
+        if re.match(r"^\d+", line_stripped) and len(line_stripped.split()) < 10:
+            continue
+        # Skip headers / lines not ending with standard sentence terminators unless they are long
+        if len(line_stripped) < 70 and not line_stripped.endswith(('.', '!', '?')):
+            continue
             
-        s_lower = s_clean.lower()
+        # Clean extra spacing and merge into raw candidate lists
+        s_clean = re.sub(r'\s+', ' ', line_stripped).strip()
+        if len(s_clean) >= 35:
+            filtered_sentences.append(s_clean)
+
+    # De-duplicate
+    seen = set()
+    unique_sentences = []
+    for s in filtered_sentences:
+        s_lower = s.lower()
         if s_lower not in seen:
             seen.add(s_lower)
-            unique_clean_sentences.append(s_clean)
-            
-    # Polished default concepts to supplement low-text watermarked PDFs
-    default_cards = [
-        "Metacognition is defined as 'thinking about thinking', allowing learners to monitor and adjust their own cognitive strategies.",
-        "Active Recall involves testing your memory by actively retrieving information rather than educationally passive re-reading.",
-        "Spaced Repetition leverages the psychological spacing effect, reviewing study cards at optimal intervals to halt the forgetting curve.",
-        "The Feynman Technique is a mental model where you master a concept by explaining it in simple, jargon-free terms to a child.",
-        "Cognitive Load Theory suggests that working memory has a finite capacity, meaning learning materials should minimize unnecessary noise.",
-        "Interleaving is a study technique where you mix different topics or practices, improving the brain's ability to distinguish concepts.",
-        "Dual Coding theory states that combining visual aids with textual information creates separate cognitive paths, enhancing keycard retrieval.",
-        "Sleep plays a critical role in memory consolidation, transferring short-term learning into stable long-term brain synaptic pathways."
-    ]
-    
-    final_sentences = unique_clean_sentences[:]
-    # If we extracted empty/low text, blend in high-quality cognitive study science keycards
+            if len(s) > 300:
+                unique_sentences.append(s[:297] + "...")
+            else:
+                unique_sentences.append(s)
+
+    # 2. Determine thematic domain
+    is_physics = "phys" in filename_lower or "quantum" in filename_lower or "mechanic" in filename_lower or "phys" in text_lower or "quantum" in text_lower
+    is_bio_chem = "chem" in filename_lower or "bio" in filename_lower or "dna" in filename_lower or "cell" in filename_lower or "chem" in text_lower or "bio" in text_lower or "cell" in text_lower
+    is_cs = "comp" in filename_lower or "code" in filename_lower or "program" in filename_lower or "typescript" in filename_lower or "web" in filename_lower or "vite" in text_lower or "react" in text_lower or "code" in text_lower
+
+    # Choose themed fallback pool
+    if is_physics:
+        default_cards = [
+            "Wave-Particle Duality states that every quantum entity may be described as either a particle or a wave physical construct.",
+            "Heisenberg's Uncertainty Principle asserts a fundamental limit to the precision with which position and momentum can be known simultaneously.",
+            "Schrödinger's Equation is a linear partial differential equation that governs the wave function of a quantum system.",
+            "Quantum Entanglement is a phenomenon where physical particles remain interconnected, such that actions on one instantly affect the other.",
+            "Planck's Constant relates the energy of a photon to its electromagnetic frequency, serving as a fundamental constant in quantum mechanics.",
+            "Superposition is the ability of a quantum physical system to be in multiple states simultaneously until a measurement collapses it.",
+            "The Photoelectric Effect is the emission of electrons when electromagnetic radiation (such as light) hits a material surface.",
+            "The Copenhagen Interpretation suggests that physical systems do not have definite physical properties prior to being measured.",
+            "Quantum Tunneling is a quantum mechanical phenomenon where a particle transition occurs directly through a potential energy barrier.",
+            "Blackbody Radiation refers to the stable spectrum of light emitted by an idealized opaque object in thermal equilibrium.",
+            "The Zeeman Effect is the splitting of a spectral line into several distinct components in the presence of a static magnetic field.",
+            "De Broglie Wave theory proposes that all moving matter exhibits wave-like characteristics, relating momentum to wavelength."
+        ]
+    elif is_bio_chem:
+        default_cards = [
+            "Mitochondria are double-membraned cellular organelles responsible for generating most of the chemical energy (ATP) needed by the cell.",
+            "Photosynthesis is the metabolic cellular process by which green plants utilize sunlight to synthesize nutrients from carbon dioxide and water.",
+            "DNA (Deoxyribonucleic Acid) is a double-helix molecule that carries the genetic instructions used in the growth and reproduction of all organisms.",
+            "Enzymes are protein macromolecules that act as highly selective catalysts, accelerating chemical reactions within biological systems.",
+            "Mitosis is the segment of the cell cycle where replicated chromosomes are separated into two new nuclei, leading to identical cells.",
+            "Active Transport is the movement of ions or molecules across a cell membrane into a region of higher concentration, requiring ATP energy.",
+            "Homeostasis is the state of steady internal physical and chemical conditions maintained in active biological systems.",
+            "Ribosomes are specialized molecular machines that serve as the site of biological protein synthesis, translating mRNA lines.",
+            "The Golgi Apparatus is a cellular organelle that packages and sorts proteins for secretion, playing a key role in the endomembrane system.",
+            "Cellular Respiration is a set of metabolic reactions that convert biochemical energy from nutrients into adenosine triphosphate.",
+            "Transcription is the first step of gene expression, where a particular segment of DNA is copied into RNA by the enzyme RNA polymerase.",
+            "Ecosystem Ecology studies the flow of energy and organic matter through living organisms and surrounding non-living environments."
+        ]
+    elif is_cs:
+        default_cards = [
+            "TypeScript is a strongly typed superset of JavaScript that compiles down to highly compatible browser script.",
+            "Vite serves workspace code with native ES module structures, ensuring near-instant hot reloads during client side testing.",
+            "React relies on a Virtual DOM structure to perform high-efficiency responsive rendering, bypassing slower browser DOM actions.",
+            "Full-Stack Web Servers secure confidential secrets, like Gemini API keys, in server-side memory away from browser inspect tools.",
+            "Streamlit is a lightweight open-source Python framework that serves interactive data dashboards with minimal front-end coding.",
+            "Git Branches allow academic or engineering collaborators to build features independently and merge safely into the main code tree.",
+            "Relational Databases organize structured tables using primary and foreign keys, supporting standard SQL query structures.",
+            "Caching is the process of storing copies of files or data streams in temporary storage locations for faster request resolutions.",
+            "REST APIs establish standard stateless communication between client apps and backend servers using HTTP GET, POST, PUT, and DELETE.",
+            "Object-Oriented Programming (OOP) organizes software design around data objects rather than functions or logic blocks.",
+            "Recursion is a programming technique where a method calls itself to solve smaller sub-instances of the same problem.",
+            "Computational Complexity (Big O) characterizes the execution time or space requirements of an algorithm as input scales."
+        ]
+    else:
+        default_cards = [
+            "Metacognition is defined as 'thinking about thinking', allowing learners to monitor and adjust their own cognitive strategies.",
+            "Active Recall involves testing your memory by actively retrieving information rather than educationally passive re-reading.",
+            "Spaced Repetition leverages the psychological spacing effect, reviewing study cards at optimal intervals to halt the forgetting curve.",
+            "The Feynman Technique is a mental model where you master a concept by explaining it in simple, jargon-free terms to a child.",
+            "Cognitive Load Theory suggests that working memory has a finite capacity, meaning learning materials should minimize unnecessary noise.",
+            "Interleaving is a study technique where you mix different topics or practices, improving the brain's ability to distinguish concepts.",
+            "Dual Coding theory states that combining visual aids with textual information creates separate cognitive paths, enhancing keycard retrieval.",
+            "Sleep plays a critical role in memory consolidation, transferring short-term learning into stable long-term brain synaptic pathways.",
+            "Dual-Store Theory suggests that memory begins in the sensory register, is processed in short-term storage, and is moved to long-term memory.",
+            "Elaborative Rehearsal is a learning strategy that involves thinking about the meaning of a term rather than just repeating it.",
+            "The Testing Effect shows that long-term memory is increased when part of the learning period is devoted to retrieving information.",
+            "Self-Explanation is a constructive study technique where learners explain difficult passages out loud to clarify content relationships."
+        ]
+
+    # Merge extracted sentences with fallback presets if extracted sentences are too few
+    final_sentences = unique_sentences[:]
     if len(final_sentences) < 8:
-        needed = 8 - len(final_sentences)
+        needed = 12 - len(final_sentences)
         for i in range(needed):
             final_sentences.append(default_cards[i % len(default_cards)])
             
-    # Slice to a clean maximum of 12 cards
+    # Cap to exactly 12 cards
     final_sentences = final_sentences[:12]
     
     keycards = []
@@ -129,16 +193,17 @@ def generate_local_fallbacks(pdf_text: str, filename: str):
         words = text_val.split()
         subject = " ".join(words[:3]).replace(',', '').replace('.', '') if len(words) > 2 else "This concept theme"
         
-        # Position the correct answer at index 0..3 deterministically based on card position
+        # Position correct answer deterministically based on card index
         correct_ans = idx % 4
         
-        # Grab other unique statements from this card pool as realistic, contextually-sound options
+        # Setup distractors from other sentences in this themed pool
         other_cards = [c["text"] for c in keycards if c["text"] != text_val]
         
-        # Pull 3 random distractors from other keycards to construct highly realistic multiple choice options
+        # Deterministic pseudorandom sampler for consistency in fallbacks
         random.seed(42 + idx)
         distractors = random.sample(other_cards, min(len(other_cards), 3)) if len(other_cards) >= 3 else []
         
+        # Backup fillers if not enough distractors
         while len(distractors) < 3:
             candidate = default_cards[random.randint(0, len(default_cards) - 1)]
             if candidate != text_val and candidate not in distractors:
@@ -210,8 +275,24 @@ with tab_workspace:
                 if pdf_parsing_available:
                     try:
                         reader = PdfReader(uploaded_file)
-                        for page in reader.pages:
-                            pdf_text += page.extract_text() or ""
+                        num_pages = len(reader.pages)
+                        extracted_pages = []
+                        for i, page in enumerate(reader.pages):
+                            page_text = page.extract_text() or ""
+                            # Skip the first few pages if we have a lot of pages and they contain TOC metadata
+                            if num_pages > 5 and i < 4:
+                                text_lower = page_text.lower()
+                                if "contents" in text_lower or "preface" in text_lower or "index" in text_lower or "table of contents" in text_lower:
+                                    continue
+                            if page_text.strip():
+                                extracted_pages.append(page_text)
+                        
+                        pdf_text = "\n\n--- Page --- \n\n".join(extracted_pages)
+                        # If we skipped too much or ended up empty, fallback to reading all page text
+                        if not pdf_text.strip():
+                            pdf_text = ""
+                            for page in reader.pages:
+                                pdf_text += page.extract_text() or ""
                     except Exception as e:
                         st.error(f"Failed parsing PDF stream locally: {e}")
                 else:
@@ -220,22 +301,52 @@ with tab_workspace:
                 # Verify if we should use Gemini API or Local Engine
                 api_key_to_use = api_key_input or os.environ.get("GEMINI_API_KEY", "")
                 
+                # Try loading Pydantic classes for strict schema validation
+                pydantic_available = False
+                try:
+                    from pydantic import BaseModel, Field
+                    from typing import List
+
+                    class KeycardSchema(BaseModel):
+                        id: str = Field(description="Concept id like card-1, card-2, etc.")
+                        text: str = Field(description="Detailed academic concept definition, fact or study flashcard text")
+
+                    class MCQSchema(BaseModel):
+                        id: str = Field(description="MCQ question ID like mcq-1, mcq-2, etc.")
+                        question: str = Field(description="Expert structured multiple choice question targeting key concepts")
+                        options: List[str] = Field(description="Exactly 4 realistic and contextually distinct options")
+                        correctAnswer: int = Field(description="Index inside the options list from 0 to 3 showing correct option")
+
+                    class StudySchema(BaseModel):
+                        keycards: List[KeycardSchema]
+                        mcqs: List[MCQSchema]
+
+                    pydantic_available = True
+                except Exception:
+                    pydantic_available = False
+
                 if api_key_to_use and gemini_sdk_available:
                     try:
                         client = genai.Client(api_key=api_key_to_use)
                         prompt = (
-                            "Extract 8-12 distinct keycards (facts/definitions) and "
-                            "generate 8-12 MCQs with 4 options each (correctAnswer index 0-3). "
-                            "Return raw JSON."
+                            "Extract 10-15 high-quality, dense keycards (facts/definitions) and "
+                            "generate 10-15 multiple-choice questions (MCQs) with 4 options each (correctAnswer index 0-3) based on the text. "
+                            "Do NOT use page headers, chapter listing indices, or table of contents lines to formulate facts or questions. "
+                            "Focus strictly on core conceptual theories, facts, explanations and definitions."
                         )
-                        combined_input = f"{prompt}\n\nDocument Text Content:\n{pdf_text[:12000]}"
+                        # Send a beautiful, robust chunk of the pdf content (up to 120,000 characters!)
+                        combined_input = f"{prompt}\n\nDocument Text Content:\n{pdf_text[:120000]}"
                         
+                        config_args = {
+                            "response_mime_type": "application/json"
+                        }
+                        if pydantic_available:
+                            config_args["response_schema"] = StudySchema
+
                         response = client.models.generate_content(
-                            model="gemini-2.5-flash",
+                            model="gemini-3.5-flash",
                             contents=combined_input,
-                            config=types.GenerateContentConfig(
-                                response_mime_type="application/json",
-                            )
+                            config=types.GenerateContentConfig(**config_args)
                         )
                         parsed_json = json.loads(response.text)
                         st.session_state.study_data = parsed_json
