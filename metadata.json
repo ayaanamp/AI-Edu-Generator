@@ -1,0 +1,6 @@
+{
+  "name": "Lumina Study Assistant",
+  "description": "A professional AI-powered study companion that extracts keycards and creates quizzes from your PDFs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
