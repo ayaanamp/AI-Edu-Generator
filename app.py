@@ -204,6 +204,7 @@ st.markdown("""
         </div>
     </div>
 </div>
+""", unsafe_allow_html=True)
 
 # Try loading PDF extraction library, provide native text box if library is not accessible
 try:
