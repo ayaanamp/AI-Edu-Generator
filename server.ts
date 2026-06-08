@@ -36,63 +36,11 @@ app.use(express.json({ limit: '50mb' }));
 
 // Helper function to generate simulated study keycards and MCQs locally from raw text
 function generateLocalFallbacks(pdfText: string, filename: string) {
-  console.log("[Local Parser] Running offline local-text synthesis engine");
+  console.log("[Local Parser] Running offline high-fidelity local-text synthesis engine");
   
   const filenameLower = filename.toLowerCase();
   const textLower = pdfText.toLowerCase();
 
-  const lines = pdfText.split('\n');
-  const filteredSentences: string[] = [];
-  const junkPatterns = [
-    /downloaded\s+from/i,
-    /ncertbooks/i,
-    /ncert/i,
-    /not\s+to\s+be\s+republished/i,
-    /www\./i,
-    /http/i,
-    /\.com/i,
-    /page\s+\d+/i,
-    /class\s+\d+/i,
-    /chapter\s+\d+/i,
-    /syllabus/i,
-    /^\s*[0-9\s\-./]+\s*$/
-  ];
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    if (junkPatterns.some(pat => pat.test(trimmed))) continue;
-    
-    // Skip potential Table of Contents lines
-    if (trimmed.includes("....") || trimmed.includes(". . .")) continue;
-    
-    // Skip potential chapter and TOC title lines Check
-    if (/^\d+/.test(trimmed) && trimmed.split(/\s+/).length < 10) continue;
-    
-    // Skip headers not ending in period/exclamation/question unless long
-    if (trimmed.length < 70 && !/[.!?]$/.test(trimmed)) continue;
-
-    const sClean = trimmed.replace(/\s+/g, " ").trim();
-    if (sClean.length >= 35) {
-      filteredSentences.push(sClean);
-    }
-  }
-
-  const seen = new Set<string>();
-  const uniqueSentences: string[] = [];
-  for (const s of filteredSentences) {
-    const sLower = s.toLowerCase();
-    if (!seen.has(sLower)) {
-      seen.add(sLower);
-      if (s.length > 300) {
-        uniqueSentences.push(s.substring(0, 297) + "...");
-      } else {
-        uniqueSentences.push(s);
-      }
-    }
-  }
-
-  // Choose themed fallback pool
   const isPhysics = filenameLower.includes("phys") || filenameLower.includes("quantum") || filenameLower.includes("mechanic") || textLower.includes("phys") || textLower.includes("quantum");
   const isBioChem = filenameLower.includes("chem") || filenameLower.includes("bio") || filenameLower.includes("dna") || filenameLower.includes("cell") || textLower.includes("chem") || textLower.includes("bio") || textLower.includes("cell");
   const isCS = filenameLower.includes("comp") || filenameLower.includes("code") || filenameLower.includes("program") || filenameLower.includes("typescript") || filenameLower.includes("web") || textLower.includes("vite") || textLower.includes("react") || textLower.includes("code");
@@ -160,11 +108,58 @@ function generateLocalFallbacks(pdfText: string, filename: string) {
     ];
   }
 
-  const finalSentences = [...uniqueSentences];
-  if (finalSentences.length < 8) {
+  // --- TS ADVANCED SENTENCE EXTRACTION FROM RAW TEXT ---
+  const extractedSentences: string[] = [];
+  if (pdfText && pdfText.trim().length > 100) {
+    let normalized = pdfText.replace(/\s+/g, " ").trim();
+    
+    // Remove common academic PDF noise
+    const junkPatterns = [
+      /downloaded\s+from/gi,
+      /ncertbooks/gi,
+      /class\s+\d+/gi,
+      /chapter\s+\d+/gi,
+      /syllabus/gi,
+      /not\s+to\s+be\s+republished/gi,
+      /www\.[a-zA-Z0-9.\-_/]+/gi
+    ];
+    for (const pat of junkPatterns) {
+      normalized = normalized.replace(pat, "");
+    }
+
+    // Split using positive lookbehind positive lookbehind that respects standard ending punctuation
+    const rawSentences = normalized.split(/(?<=[.!?])\s+/);
+    
+    const seen = new Set<string>();
+    for (const s of rawSentences) {
+      const sClean = s.trim();
+      if (
+        sClean.length >= 45 && sClean.length <= 250 &&
+        /^[A-Z]/.test(sClean) &&
+        /[.!?]$/.test(sClean) &&
+        sClean.split(/\s+/).length >= 6 &&
+        !sClean.includes("....") && !sClean.includes(". . .")
+      ) {
+        // Skip purely numeric page headers
+        if (/^\s*[0-9\s\-./]+\s*$/.test(sClean)) continue;
+
+        const sLower = sClean.toLowerCase();
+        if (!seen.has(sLower)) {
+          seen.add(sLower);
+          extractedSentences.push(sClean);
+        }
+      }
+    }
+  }
+
+  const finalSentences = [...extractedSentences];
+  if (finalSentences.length < 12) {
     const needed = 12 - finalSentences.length;
     for (let i = 0; i < needed; i++) {
-      finalSentences.push(defaultCards[i % defaultCards.length]);
+      const candidate = defaultCards[i % defaultCards.length];
+      if (!finalSentences.includes(candidate)) {
+        finalSentences.push(candidate);
+      }
     }
   }
 
@@ -175,32 +170,34 @@ function generateLocalFallbacks(pdfText: string, filename: string) {
   }));
 
   const mcqs = keycards.map((card, index) => {
-    const words = card.text.split(" ");
-    const subject = words.length > 2 ? words.slice(0, 3).join(" ").replace(/[,.:;'"()]/g, "") : "This core theme";
+    const words = card.text.split(/\s+/);
+    let subject = "This key concept";
+    if (words.length > 3) {
+      subject = words.slice(0, 4).join(" ").replace(/[,.:;'"()]/g, "");
+    }
     
     const correctAns = index % 4;
     const options = ["", "", "", ""];
     
-    const otherCards = keycards.filter(c => c.text !== card.text).map(c => c.text);
+    const otherChoices = keycards.filter(c => c.text !== card.text).map(c => c.text);
     
-    // Deterministic pseudo-random distractors for consistency in offline options
     const distractors: string[] = [];
     let seed = index;
-    // We want to pull 3 distinct distractors from the unique pool
+    // Deterministic selection of distractors
     while (distractors.length < 3) {
-      if (otherCards.length > 0) {
-        const itemIdx = (seed + 13) % otherCards.length;
-        const item = otherCards.splice(itemIdx, 1)[0];
+      if (otherChoices.length > 0) {
+        const itemIdx = (seed + 17) % otherChoices.length;
+        const item = otherChoices.splice(itemIdx, 1)[0];
         if (!distractors.includes(item)) {
           distractors.push(item);
         }
       } else {
-        const item = defaultCards[(seed + 7) % defaultCards.length];
+        const item = defaultCards[(seed + 13) % defaultCards.length];
         if (item !== card.text && !distractors.includes(item)) {
           distractors.push(item);
         }
       }
-      seed += 5;
+      seed += 7;
     }
 
     let distIdx = 0;
@@ -214,7 +211,7 @@ function generateLocalFallbacks(pdfText: string, filename: string) {
 
     return {
       id: `local-mcq-${index + 1}`,
-      question: `Which statement best formalizes the academic description or definition for section "${subject}"?`,
+      question: `Based on the processed study material, which of the following statements offers the most accurate formulation regarding the concept of '${subject}'?`,
       options,
       correctAnswer: correctAns
     };
