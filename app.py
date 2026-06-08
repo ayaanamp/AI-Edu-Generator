@@ -3,6 +3,7 @@ import re
 import json
 import random
 import streamlit as st
+import streamlit.components.v1 as components
 
 # Set Streamlit Page Layout Config
 st.set_page_config(
@@ -644,22 +645,140 @@ with tab_workspace:
                 st.subheader("📚 Cognitive Study Keycards")
                 cards = st.session_state.study_data.get("keycards", [])
                 
+                card_html_template = """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <link rel="preconnect" href="https://fonts.googleapis.com">
+                    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@1,400;1,500&display=swap" rel="stylesheet">
+                    <style>
+                        html, body {
+                            margin: 0;
+                            padding: 0;
+                            background-color: transparent;
+                            font-family: 'Inter', -apple-system, sans-serif;
+                            color: #ffffff;
+                            overflow: hidden;
+                            height: 100%;
+                        }
+                        .card {
+                            background-color: #121212;
+                            border: 1px solid rgba(255, 255, 255, 0.06);
+                            padding: 18px 20px;
+                            border-radius: 14px;
+                            position: relative;
+                            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+                            box-sizing: border-box;
+                            height: calc(100% - 10px);
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: space-between;
+                            transition: all 0.3s ease;
+                        }
+                        .card:hover {
+                            border-color: rgba(16, 185, 129, 0.3);
+                            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.05);
+                        }
+                        .idx {
+                            position: absolute;
+                            top: 12px;
+                            right: 16px;
+                            font-size: 28px;
+                            font-family: 'Playfair Display', serif;
+                            font-style: italic;
+                            color: rgba(16, 185, 129, 0.08);
+                            user-select: none;
+                        }
+                        .lbl {
+                            color: #10b981;
+                            font-family: monospace;
+                            font-size: 10px;
+                            margin: 0 0 6px 0;
+                            text-transform: uppercase;
+                            letter-spacing: 2px;
+                            font-weight: bold;
+                        }
+                        .text {
+                            color: rgba(255, 255, 255, 0.92);
+                            font-size: 14px;
+                            line-height: 1.5;
+                            font-weight: 300;
+                            margin: 0 0 12px 0;
+                            padding-right: 12px;
+                        }
+                        .btn {
+                            background-color: rgba(255, 255, 255, 0.04);
+                            border: 1px solid rgba(255, 255, 255, 0.08);
+                            color: rgba(255, 255, 255, 0.7);
+                            padding: 6px 14px;
+                            border-radius: 9999px;
+                            font-size: 11px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 6px;
+                            font-family: 'Inter', sans-serif;
+                            transition: all 0.2s ease;
+                            outline: none;
+                        }
+                        .btn:hover {
+                            background-color: rgba(16, 185, 129, 0.12);
+                            border-color: rgba(16, 185, 129, 0.4);
+                            color: #10b981;
+                            transform: translateY(-1px);
+                        }
+                        .btn:active {
+                            transform: translateY(0);
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="card">
+                        <div>
+                            <span class="idx">__PADDED_IDX__</span>
+                            <div class="lbl">Foundation Fact</div>
+                            <div class="text">__CARD_TEXT__</div>
+                        </div>
+                        <div>
+                            <button class="btn" onclick="speakText()">
+                                🔊 Listen to Insight
+                            </button>
+                        </div>
+                    </div>
+                    <script>
+                        function speakText() {
+                            if (!window.speechSynthesis) {
+                                alert("Speech synthesis not supported in your browser.");
+                                    return;
+                            }
+                            window.speechSynthesis.cancel();
+                            
+                            let text = __JS_SAFE_TEXT__;
+                            let utterance = new SpeechSynthesisUtterance(text);
+                            utterance.lang = "en-US";
+                            utterance.rate = 0.95;
+                            utterance.pitch = 1.0;
+                            
+                            window.speechSynthesis.speak(utterance);
+                        }
+                    </script>
+                </body>
+                </html>
+                """
+
                 for idx, card in enumerate(cards):
                     card_text = card.get("text", "")
-                    # Clean the script text of quotes so speech synthesis does not crash
-                    js_safe_text = card_text.replace("'", "\\'").replace('"', '\\"').replace("\n", " ")
                     padded_idx = str(idx + 1).zfill(2)
+                    js_safe_text_json = json.dumps(card_text)
                     
-                    st.markdown(f"""
-                    <div style="background-color: #121212; border: 1px solid rgba(255,255,255,0.06); padding: 22px; border-radius: 14px; position: relative; margin-bottom: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
-                        <span style="position: absolute; top: 12px; right: 16px; font-size: 28px; font-family: serif; font-style: italic; color: rgba(16,185,129,0.08); user-select: none;">{padded_idx}</span>
-                        <p style="color: #10b981; font-family: monospace; font-size: 10px; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 2px; font-weight: bold;">Foundation Fact</p>
-                        <p style="color: rgba(255,255,255,0.92); font-size: 15px; line-height: 1.6; font-weight: 300; margin: 0 0 16px 0; padding-right: 12px; font-family: sans-serif;">{card_text}</p>
-                        <button onclick="let u = new SpeechSynthesisUtterance('{js_safe_text}'); u.lang='en-US'; window.speechSynthesis.speak(u);" style="background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); padding: 5px 12px; border-radius: 9999px; font-size: 10px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: 0.2s;">
-                            🔊 Listen to Insight
-                        </button>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    card_html_instance = card_html_template\
+                        .replace("__PADDED_IDX__", padded_idx)\
+                        .replace("__CARD_TEXT__", card_text)\
+                        .replace("__JS_SAFE_TEXT__", js_safe_text_json)
+                    
+                    components.html(card_html_instance, height=195)
                         
             with col_quiz:
                 st.subheader("📝 Diagnostic MCQ Practice Quiz")
