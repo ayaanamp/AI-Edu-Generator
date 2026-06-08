@@ -226,65 +226,11 @@ def generate_local_fallbacks(pdf_text: str, filename: str):
     filename_lower = filename.lower()
     text_lower = pdf_text.lower()
     
-    # 1. Clean the PDF lines, skipping watermarks, pure headers, and Table of Contents entries
-    lines = pdf_text.split('\n')
-    filtered_sentences = []
-    
-    junk_patterns = [
-        r"(?i)downloaded\s+from",
-        r"(?i)ncertbooks",
-        r"(?i)ncert",
-        r"(?i)not\s+to\s+be\s+republished",
-        r"(?i)www\.",
-        r"(?i)http",
-        r"(?i)\.com",
-        r"(?i)page\s+\d+",
-        r"(?i)class\s+\d+",
-        r"(?i)chapter\s+\d+",
-        r"(?i)syllabus",
-        r"^\s*[0-9\s\-\.\/]+\s*$"
-    ]
-    
-    for line in lines:
-        line_stripped = line.strip()
-        if not line_stripped:
-            continue
-        # Skip if matching junk watermark patterns
-        if any(re.search(pat, line_stripped) for pat in junk_patterns):
-            continue
-        # Skip potential Table of Contents lines (containing dot leader chains like "....." or very short sections)
-        if "...." in line_stripped or ". . ." in line_stripped:
-            continue
-        # Skip potential chapter and toc title lines starting with numbers and of short length
-        if re.match(r"^\d+", line_stripped) and len(line_stripped.split()) < 10:
-            continue
-        # Skip headers / lines not ending with standard sentence terminators unless they are long
-        if len(line_stripped) < 70 and not line_stripped.endswith(('.', '!', '?')):
-            continue
-            
-        # Clean extra spacing and merge into raw candidate lists
-        s_clean = re.sub(r'\s+', ' ', line_stripped).strip()
-        if len(s_clean) >= 35:
-            filtered_sentences.append(s_clean)
-
-    # De-duplicate
-    seen = set()
-    unique_sentences = []
-    for s in filtered_sentences:
-        s_lower = s.lower()
-        if s_lower not in seen:
-            seen.add(s_lower)
-            if len(s) > 300:
-                unique_sentences.append(s[:297] + "...")
-            else:
-                unique_sentences.append(s)
-
-    # 2. Determine thematic domain
+    # Pre-select themed fallbacks for backup
     is_physics = "phys" in filename_lower or "quantum" in filename_lower or "mechanic" in filename_lower or "phys" in text_lower or "quantum" in text_lower
     is_bio_chem = "chem" in filename_lower or "bio" in filename_lower or "dna" in filename_lower or "cell" in filename_lower or "chem" in text_lower or "bio" in text_lower or "cell" in text_lower
     is_cs = "comp" in filename_lower or "code" in filename_lower or "program" in filename_lower or "typescript" in filename_lower or "web" in filename_lower or "vite" in text_lower or "react" in text_lower or "code" in text_lower
 
-    # Choose themed fallback pool
     if is_physics:
         default_cards = [
             "Wave-Particle Duality states that every quantum entity may be described as either a particle or a wave physical construct.",
@@ -346,45 +292,103 @@ def generate_local_fallbacks(pdf_text: str, filename: str):
             "Self-Explanation is a constructive study technique where learners explain difficult passages out loud to clarify content relationships."
         ]
 
-    # Merge extracted sentences with fallback presets if extracted sentences are too few
-    final_sentences = unique_sentences[:]
-    if len(final_sentences) < 8:
+    # --- ADVANCED SENTENCE EXTRACTION FROM RAW TEXT ---
+    extracted_sentences = []
+    if pdf_text and len(pdf_text.strip()) > 100:
+        # Normalize text spacing to merge split lines
+        normalized = re.sub(r'\s+', ' ', pdf_text).strip()
+        
+        # Remove common academic PDF noise
+        junk_patterns = [
+            r"downloaded\s+from",
+            r"ncertbooks",
+            r"class\s+\d+",
+            r"chapter\s+\d+",
+            r"syllabus",
+            r"not\s+to\s+be\s+republished",
+            r"www\.[a-zA-Z0-9.\-_/]+"
+        ]
+        for pattern in junk_patterns:
+            normalized = re.sub(pattern, "", normalized, flags=re.IGNORECASE)
+            
+        # Split into sentences using a robust lookbehind that respects standard ending punctuation
+        raw_sentences = re.split(r'(?<=[.!?])\s+', normalized)
+        
+        seen = set()
+        for s in raw_sentences:
+            s_clean = s.strip()
+            # Must meet the requirements of a high-quality educational fact card:
+            # - Length between 45 and 250 characters
+            # - Starts with an uppercase letter
+            # - Ends with punctuation
+            # - Has at least 6 words
+            # - Does not contain long "dot chains" like TOCs "....."
+            if (len(s_clean) >= 45 and len(s_clean) <= 250 and
+                s_clean[0].isupper() and
+                s_clean[-1] in ('.', '!', '?') and
+                len(s_clean.split()) >= 6 and
+                "...." not in s_clean and ". . ." not in s_clean):
+                
+                # Check for other numeric sequences indicating page listings
+                if re.match(r'^\s*[0-9\s\-./]+\s*$', s_clean):
+                    continue
+                    
+                s_lower = s_clean.lower()
+                if s_lower not in seen:
+                    seen.add(s_lower)
+                    extracted_sentences.append(s_clean)
+
+    # 2. Build final pool of up to 12 cards
+    final_sentences = extracted_sentences[:]
+    if len(final_sentences) < 12:
         needed = 12 - len(final_sentences)
         for i in range(needed):
-            final_sentences.append(default_cards[i % len(default_cards)])
-            
-    # Cap to exactly 12 cards
+            candidate = default_cards[i % len(default_cards)]
+            if candidate not in final_sentences:
+                final_sentences.append(candidate)
+                
     final_sentences = final_sentences[:12]
     
+    # 3. Create Keycards metadata
     keycards = []
-    for i, text in enumerate(final_sentences):
+    for i, text_val in enumerate(final_sentences):
         keycards.append({
             "id": f"local-card-{i+1}",
-            "text": text
+            "text": text_val
         })
         
+    # 4. Create premium context-aware MCQs with authentic options
     mcqs = []
     for idx, card in enumerate(keycards):
         text_val = card["text"]
         words = text_val.split()
-        subject = " ".join(words[:3]).replace(',', '').replace('.', '') if len(words) > 2 else "This concept theme"
         
-        # Position correct answer deterministically based on card index
+        # Extract a premium contextual subject header from the text
+        if len(words) > 3:
+            subject = " ".join(words[:4]).strip(",.:;()\"' ")
+        else:
+            subject = "This key concept"
+            
+        # Place correct answer deterministically inside option slots
         correct_ans = idx % 4
         
-        # Setup distractors from other sentences in this themed pool
-        other_cards = [c["text"] for c in keycards if c["text"] != text_val]
+        # Use other extracted card facts as natural distractors
+        other_choices = [c["text"] for c in keycards if c["text"] != text_val]
         
-        # Deterministic pseudorandom sampler for consistency in fallbacks
-        random.seed(42 + idx)
-        distractors = random.sample(other_cards, min(len(other_cards), 3)) if len(other_cards) >= 3 else []
-        
-        # Backup fillers if not enough distractors
-        while len(distractors) < 3:
-            candidate = default_cards[random.randint(0, len(default_cards) - 1)]
-            if candidate != text_val and candidate not in distractors:
-                distractors.append(candidate)
-                
+        # Pull 3 highly educational distractors from our current active card pool
+        random.seed(1337 + idx)
+        if len(other_choices) >= 3:
+            distractors = random.sample(other_choices, 3)
+        else:
+            distractors = other_choices[:]
+            # If we don't have enough other choices, fill from the default pool
+            for candidate in default_cards:
+                if len(distractors) >= 3:
+                    break
+                if candidate != text_val and candidate not in distractors:
+                    distractors.append(candidate)
+                    
+        # Mix distractors with correct option
         options = [""] * 4
         dist_idx = 0
         for o in range(4):
@@ -396,7 +400,7 @@ def generate_local_fallbacks(pdf_text: str, filename: str):
                 
         mcqs.append({
             "id": f"local-mcq-{idx+1}",
-            "question": f"Which statement best formalizes the academic description or definition for section '{subject}'?",
+            "question": f"Based on the processed study material, which of the following statements offers the most accurate formulation regarding the concept of '{subject}'?",
             "options": options,
             "correctAnswer": correct_ans
         })
