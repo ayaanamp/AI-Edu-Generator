@@ -12,22 +12,146 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Tailwind/Styling Injector
+# Custom Theme and High-Fidelity Styling Injector
 st.markdown("""
 <style>
-    .card-title {
-        font-family: 'Times New Roman', serif;
-        font-style: italic;
+    /* Force pitch-black and deep carbon colors everywhere */
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"] {
+        background-color: #0a0a0a !important;
+        color: #e0e0e0 !important;
+        font-family: 'Inter', -apple-system, sans-serif !important;
     }
+    
+    /* Make the sidebar look like carbon obsidian with neat border */
+    [data-testid="stSidebar"], [data-testid="stSidebar"] > div {
+        background-color: #0d0d0d !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    
+    /* Style headers and main container layout spacing */
+    [data-testid="stHeader"] {
+        background-color: #0f0f0f !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+
+    /* Style the tabs to look ultra professional */
+    div[data-baseweb="tab-list"] {
+        background-color: #0f0f0f !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        padding: 5px !important;
+        border-radius: 12px !important;
+        gap: 6px !important;
+        margin-bottom: 20px !important;
+    }
+    button[data-baseweb="tab"] {
+        background-color: transparent !important;
+        color: rgba(255,255,255,0.4) !important;
+        border-radius: 8px !important;
+        padding: 8px 18px !important;
+        border: none !important;
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1.5px !important;
+        transition: all 0.3s !important;
+    }
+    button[aria-selected="true"] {
+        background-color: #10b981 !important;
+        color: #000000 !important;
+        box-shadow: 0 0 12px rgba(16,185,129,0.3) !important;
+    }
+
+    /* Drag and drop file uploader customization */
+    div[data-testid="stFileUploader"] {
+        border: 2px dashed rgba(255,255,255,0.1) !important;
+        border-radius: 16px !important;
+        padding: 20px !important;
+        background-color: rgba(255, 255, 255, 0.01) !important;
+    }
+    div[data-testid="stFileUploader"]:hover {
+        border-color: #10b981 !important;
+        background-color: rgba(16, 185, 129, 0.02) !important;
+    }
+
+    /* Radio button / MCQ styling override as elegant custom card lists */
+    div[data-testid="stRadio"] > div {
+        gap: 10px !important;
+        width: 100% !important;
+    }
+    div[data-testid="stRadio"] label {
+        background-color: #121212 !important;
+        border: 1px solid rgba(255,255,255,0.06) !important;
+        border-radius: 12px !important;
+        padding: 14px 18px !important;
+        color: rgba(255,255,255,0.8) !important;
+        transition: all 0.25s !important;
+        cursor: pointer !important;
+        display: block !important;
+        width: 100% !important;
+    }
+    div[data-testid="stRadio"] label:hover {
+        border-color: rgba(16, 185, 129, 0.4) !important;
+        background-color: rgba(255,255,255,0.03) !important;
+    }
+    div[data-testid="stRadio"] label[data-checked="true"] {
+        border-color: #10b981 !important;
+        background-color: rgba(16, 185, 129, 0.12) !important;
+        color: #ffffff !important;
+    }
+    
+    /* Standard buttons override */
     .stButton>button {
-        border-radius: 12px;
-        transition: all 0.3s;
+        background-color: #10b981 !important;
+        color: #000000 !important;
+        font-weight: 700 !important;
+        border-radius: 10px !important;
+        border: none !important;
+        padding: 8px 18px !important;
+        transition: all 0.3s !important;
     }
     .stButton>button:hover {
-        border-color: #10b981 !important;
+        background-color: #059669 !important;
+        box-shadow: 0 0 15px rgba(16,185,129,0.4) !important;
+    }
+
+    /* Info, Success, Alerts styling custom match */
+    div.stAlert {
+        border-radius: 12px !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        background-color: #151515 !important;
+    }
+
+    /* Hide default decoration */
+    div.stDecoration {
+        display: none !important;
+    }
+    
+    /* Custom header logos styling */
+    .brand-accent {
         color: #10b981 !important;
+        font-family: 'Playfair Display', 'Georgia', serif !important;
+        font-style: italic !important;
     }
 </style>
+""", unsafe_allow_html=True)
+
+# Generate custom head navigation matching the React header
+st.markdown("""
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 5px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 25px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 32px; height: 32px; background-color: #10b981; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(16,185,129,0.35);">
+            <span style="font-size: 16px; color: black; font-weight: bold;">🧠</span>
+        </div>
+        <h1 style="font-size: 20px; font-weight: 600; color: white; margin: 0; font-family: -apple-system, sans-serif;">
+            Lumina<span style="color: #10b981; font-style: italic; font-family: serif;">AI</span> Study
+        </h1>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: #10b981; font-weight: bold; background-color: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); padding: 4px 10px; border-radius: 6px;">
+            🎓 Companion Engine Active
+        </span>
+    </div>
+</div>
 """, unsafe_allow_html=True)
 
 # Try loading PDF extraction library, provide native text box if library is not accessible
@@ -237,16 +361,32 @@ if "quiz_answers" not in st.session_state:
 if "quiz_submitted" not in st.session_state:
     st.session_state.quiz_submitted = False
 
+# Helper to find active Google Gemini API key cleanly from multiple places
+def get_companion_api_key():
+    if "api_key_input" in st.session_state and st.session_state.api_key_input.strip():
+        return st.session_state.api_key_input.strip()
+    env_val = os.environ.get("GEMINI_API_KEY", "").strip()
+    if env_val:
+        return env_val
+    try:
+        if "GEMINI_API_KEY" in st.secrets:
+            return st.secrets["GEMINI_API_KEY"].strip()
+    except Exception:
+        pass
+    return ""
+
 # --- Sidebar UI Layout ---
 with st.sidebar:
-    st.markdown("### 🎓 Lumina Companion")
+    st.markdown("### 🎓 Companion HUD")
     st.markdown("---")
     st.info("💡 **Local Offline Ready:** If your Gemini API Key is missing, the system automatically redirects to our offline synthesis parsing fallback.")
     
+    # Store API Key in session state key directly to prevent loss across reruns
     api_key_input = st.text_input(
         "Google Gemini API Key (Optional)",
-        value=os.environ.get("GEMINI_API_KEY", ""),
+        value=get_companion_api_key(),
         type="password",
+        key="api_key_input",
         help="If left blank, Lumina runs smoothly in 100% Offline Local Mode without calling any network integrations!"
     )
     
@@ -255,8 +395,7 @@ with st.sidebar:
     st.markdown("• Run app locally: `streamlit run app.py`  \n• Link to your personal GitHub repo  \n• Deploy to Streamlit Cloud with one click!")
 
 # --- Main App Core Title Panel ---
-st.title("🎓 Lumina Study Companion")
-st.caption("Active Workspace Protocol & Academic Document Synthesis")
+st.markdown("<h4 style='margin-top:0; color: rgba(255,255,255,0.4); font-size:12px; text-transform:uppercase; letter-spacing:2px;'>Active Workspace Protocol & Academic Document Synthesis</h4>", unsafe_allow_html=True)
 
 tab_workspace, tab_info = st.tabs(["📊 Workspace HUD", "🛠️ Windows & GitHub Guide"])
 
@@ -279,8 +418,8 @@ with tab_workspace:
                         extracted_pages = []
                         for i, page in enumerate(reader.pages):
                             page_text = page.extract_text() or ""
-                            # Skip the first few pages if we have a lot of pages and they contain TOC metadata
-                            if num_pages > 5 and i < 4:
+                            # Only skip TOC helper pages if PDF is extremely huge (e.g. >30 pages), otherwise respect outline text.
+                            if num_pages > 30 and i < 4:
                                 text_lower = page_text.lower()
                                 if "contents" in text_lower or "preface" in text_lower or "index" in text_lower or "table of contents" in text_lower:
                                     continue
@@ -299,7 +438,7 @@ with tab_workspace:
                     pdf_text = "Standard fallback layout text. Install pypdf to parse active PDF files."
                 
                 # Verify if we should use Gemini API or Local Engine
-                api_key_to_use = api_key_input or os.environ.get("GEMINI_API_KEY", "")
+                api_key_to_use = get_companion_api_key()
                 
                 # Try loading Pydantic classes for strict schema validation
                 pydantic_available = False
@@ -328,14 +467,35 @@ with tab_workspace:
                 if api_key_to_use and gemini_sdk_available:
                     try:
                         client = genai.Client(api_key=api_key_to_use)
+                        
                         prompt = (
-                            "Extract 10-15 high-quality, dense keycards (facts/definitions) and "
-                            "generate 10-15 multiple-choice questions (MCQs) with 4 options each (correctAnswer index 0-3) based on the text. "
-                            "Do NOT use page headers, chapter listing indices, or table of contents lines to formulate facts or questions. "
-                            "Focus strictly on core conceptual theories, facts, explanations and definitions."
+                            "You are an expert academic tutor. Analyze the provided content.\n"
+                            "1. Extract 10-15 high-quality, dense study keycards (facts/definitions).\n"
+                            "   - CRITICAL: Each keycard must contain a clear topic heading followed by a thorough, detailed, and rigorous academic definition/explanation "
+                            "     (e.g., 'Quantum Superposition | Superposition is a fundamental principle of quantum mechanics where...').\n"
+                            "   - If the uploaded document is just a Table of Contents, outline, index, or syllabus of topics, you MUST NOT just copy-paste the sparse titles. "
+                            "     Instead, use your vast internal academic knowledge base to reconstruct and write deep, high-quality, full-length study card explanations/notes "
+                            "     for each of those listed topics.\n"
+                            "2. Generate 10-15 multiple-choice questions (MCQs) targeting these exact study concepts.\n"
+                            "   - Each MCQ must have exactly 4 realistic, distinct options, with one clearly correct answer (correctAnswer index 0-3).\n"
+                            "Your response MUST be an exact JSON structure containing 'keycards' and 'mcqs'."
                         )
-                        # Send a beautiful, robust chunk of the pdf content (up to 120,000 characters!)
-                        combined_input = f"{prompt}\n\nDocument Text Content:\n{pdf_text[:120000]}"
+                        
+                        contents_payload = [prompt]
+                        if pdf_text and len(pdf_text.strip()) > 100:
+                            contents_payload.append(f"Document Text Content:\n{pdf_text[:120000]}")
+                        else:
+                            # Direct PDF bytes passing ensures perfect parsing even if text extraction is small/scanned
+                            pdf_bytes = uploaded_file.getvalue()
+                            try:
+                                contents_payload.append(
+                                    types.Part.from_bytes(
+                                        data=pdf_bytes,
+                                        mime_type="application/pdf"
+                                    )
+                                )
+                            except Exception:
+                                contents_payload.append(f"Document Text Content:\n{pdf_text[:120000]}")
                         
                         config_args = {
                             "response_mime_type": "application/json"
@@ -345,7 +505,7 @@ with tab_workspace:
 
                         response = client.models.generate_content(
                             model="gemini-3.5-flash",
-                            contents=combined_input,
+                            contents=contents_payload,
                             config=types.GenerateContentConfig(**config_args)
                         )
                         parsed_json = json.loads(response.text)
@@ -367,9 +527,21 @@ with tab_workspace:
                 cards = st.session_state.study_data.get("keycards", [])
                 
                 for idx, card in enumerate(cards):
-                    with st.expander(f"Key Concept {idx+1}: {card.get('text', '')[:40]}...", expanded=(idx == 0)):
-                        st.markdown(f"**Concept Definition:**")
-                        st.info(card.get("text", ""))
+                    card_text = card.get("text", "")
+                    # Clean the script text of quotes so speech synthesis does not crash
+                    js_safe_text = card_text.replace("'", "\\'").replace('"', '\\"').replace("\n", " ")
+                    padded_idx = str(idx + 1).zfill(2)
+                    
+                    st.markdown(f"""
+                    <div style="background-color: #121212; border: 1px solid rgba(255,255,255,0.06); padding: 22px; border-radius: 14px; position: relative; margin-bottom: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
+                        <span style="position: absolute; top: 12px; right: 16px; font-size: 28px; font-family: serif; font-style: italic; color: rgba(16,185,129,0.08); user-select: none;">{padded_idx}</span>
+                        <p style="color: #10b981; font-family: monospace; font-size: 10px; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 2px; font-weight: bold;">Foundation Fact</p>
+                        <p style="color: rgba(255,255,255,0.92); font-size: 15px; line-height: 1.6; font-weight: 300; margin: 0 0 16px 0; padding-right: 12px; font-family: sans-serif;">{card_text}</p>
+                        <button onclick="let u = new SpeechSynthesisUtterance('{js_safe_text}'); u.lang='en-US'; window.speechSynthesis.speak(u);" style="background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); padding: 5px 12px; border-radius: 9999px; font-size: 10px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: 0.2s;">
+                            🔊 Listen to Insight
+                        </button>
+                    </div>
+                    """, unsafe_allow_html=True)
                         
             with col_quiz:
                 st.subheader("📝 Diagnostic MCQ Practice Quiz")
@@ -401,7 +573,7 @@ with tab_workspace:
                             st.success("Correct!")
                             quiz_score += 1
                         else:
-                            st.error(f"Incorret. Correct statement is: {options[correct_idx]}")
+                            st.error(f"Incorrect. Correct statement is:\n\n{options[correct_idx]}")
                     st.markdown("---")
                     
                 if questions:
