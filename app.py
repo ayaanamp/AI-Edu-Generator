@@ -15,58 +15,60 @@ st.set_page_config(
 # Custom Theme and High-Fidelity Styling Injector
 st.markdown("""
 <style>
-    /* Force pitch-black and deep carbon colors everywhere */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+    /* Force pitch-black and deep carbon obsidian colors everywhere */
     html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"] {
-        background-color: #0a0a0a !important;
-        color: #e0e0e0 !important;
+        background-color: #050505 !important;
+        color: #e2e8f0 !important;
         font-family: 'Inter', -apple-system, sans-serif !important;
     }
     
     /* Make the sidebar look like carbon obsidian with neat border */
     [data-testid="stSidebar"], [data-testid="stSidebar"] > div {
-        background-color: #0d0d0d !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+        background-color: #090909 !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
     }
     
     /* Style headers and main container layout spacing */
     [data-testid="stHeader"] {
-        background-color: #0f0f0f !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        background-color: #050505 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
     }
 
     /* Style the tabs to look ultra professional */
     div[data-baseweb="tab-list"] {
-        background-color: #0f0f0f !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        padding: 5px !important;
-        border-radius: 12px !important;
+        background-color: #0b0b0b !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        padding: 6px !important;
+        border-radius: 14px !important;
         gap: 6px !important;
-        margin-bottom: 20px !important;
+        margin-bottom: 30px !important;
     }
     button[data-baseweb="tab"] {
         background-color: transparent !important;
         color: rgba(255,255,255,0.4) !important;
-        border-radius: 8px !important;
-        padding: 8px 18px !important;
+        border-radius: 10px !important;
+        padding: 10px 22px !important;
         border: none !important;
-        font-size: 12px !important;
+        font-size: 11px !important;
         font-weight: 700 !important;
         text-transform: uppercase !important;
-        letter-spacing: 1.5px !important;
-        transition: all 0.3s !important;
+        letter-spacing: 2px !important;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
     button[aria-selected="true"] {
         background-color: #10b981 !important;
         color: #000000 !important;
-        box-shadow: 0 0 12px rgba(16,185,129,0.3) !important;
+        box-shadow: 0 0 15px rgba(16,185,129,0.35) !important;
     }
 
-    /* Drag and drop file uploader customization */
+    /* Drag and drop file uploader customization default */
     div[data-testid="stFileUploader"] {
-        border: 2px dashed rgba(255,255,255,0.1) !important;
-        border-radius: 16px !important;
-        padding: 20px !important;
         background-color: rgba(255, 255, 255, 0.01) !important;
+        border-radius: 16px !important;
+        border: 1px dashed rgba(255, 255, 255, 0.08) !important;
+        transition: all 0.3s !important;
     }
     div[data-testid="stFileUploader"]:hover {
         border-color: #10b981 !important;
@@ -75,28 +77,30 @@ st.markdown("""
 
     /* Radio button / MCQ styling override as elegant custom card lists */
     div[data-testid="stRadio"] > div {
-        gap: 10px !important;
+        gap: 12px !important;
         width: 100% !important;
     }
     div[data-testid="stRadio"] label {
-        background-color: #121212 !important;
-        border: 1px solid rgba(255,255,255,0.06) !important;
-        border-radius: 12px !important;
-        padding: 14px 18px !important;
-        color: rgba(255,255,255,0.8) !important;
-        transition: all 0.25s !important;
+        background-color: #0d0d0d !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+        border-radius: 14px !important;
+        padding: 16px 20px !important;
+        color: rgba(255,255,255,0.75) !important;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
         cursor: pointer !important;
         display: block !important;
         width: 100% !important;
     }
     div[data-testid="stRadio"] label:hover {
-        border-color: rgba(16, 185, 129, 0.4) !important;
-        background-color: rgba(255,255,255,0.03) !important;
+        border-color: rgba(16, 185, 129, 0.3) !important;
+        background-color: rgba(16, 185, 129, 0.03) !important;
+        color: #ffffff !important;
     }
     div[data-testid="stRadio"] label[data-checked="true"] {
         border-color: #10b981 !important;
-        background-color: rgba(16, 185, 129, 0.12) !important;
+        background-color: rgba(16, 185, 129, 0.08) !important;
         color: #ffffff !important;
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.05) !important;
     }
     
     /* Standard buttons override */
@@ -104,21 +108,26 @@ st.markdown("""
         background-color: #10b981 !important;
         color: #000000 !important;
         font-weight: 700 !important;
-        border-radius: 10px !important;
+        border-radius: 12px !important;
         border: none !important;
-        padding: 8px 18px !important;
-        transition: all 0.3s !important;
+        padding: 10px 24px !important;
+        letter-spacing: 1px !important;
+        text-transform: uppercase !important;
+        font-size: 11px !important;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
     .stButton>button:hover {
         background-color: #059669 !important;
-        box-shadow: 0 0 15px rgba(16,185,129,0.4) !important;
+        box-shadow: 0 0 20px rgba(16,185,129,0.45) !important;
+        transform: translateY(-1px) !important;
     }
 
     /* Info, Success, Alerts styling custom match */
     div.stAlert {
-        border-radius: 12px !important;
-        border: 1px solid rgba(255,255,255,0.1) !important;
-        background-color: #151515 !important;
+        border-radius: 14px !important;
+        border: 1px solid rgba(255,255,255,0.06) !important;
+        background-color: #0e0e0e !important;
+        padding: 15px 20px !important;
     }
 
     /* Hide default decoration */
@@ -126,33 +135,75 @@ st.markdown("""
         display: none !important;
     }
     
-    /* Custom header logos styling */
-    .brand-accent {
-        color: #10b981 !important;
-        font-family: 'Playfair Display', 'Georgia', serif !important;
-        font-style: italic !important;
+    /* Custom container and overlay for Source Acquisition empty state */
+    .source-acquisition-container {
+        max-width: 650px !important;
+        height: 380px !important;
+        background-color: #0b0b0b !important;
+        border: 1px dashed rgba(255, 255, 255, 0.08) !important;
+        border-radius: 20px !important;
+        padding: 40px !important;
+        margin: 40px auto !important;
+        box-shadow: 0 30px 70px rgba(0, 0, 0, 0.7) !important;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        position: relative !important;
+    }
+
+    .source-acquisition-icon {
+        width: 64px !important;
+        height: 64px !important;
+        background-color: #10b981 !important;
+        border-radius: 50% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        box-shadow: 0 0 25px rgba(16, 185, 129, 0.3) !important;
+        margin-bottom: 24px !important;
+        transition: all 0.4s ease !important;
+    }
+
+    /* Using parent has hover selectors to highlight source-acquisition-container when uploader is hovered */
+    div[data-testid="stVerticalBlock"]:has(div[data-testid="stFileUploader"]:hover) .source-acquisition-container {
+        border-color: #10b981 !important;
+        box-shadow: 0 0 45px rgba(16, 185, 129, 0.18) !important;
+        background-color: #0d0d0d !important;
+    }
+    div[data-testid="stVerticalBlock"]:has(div[data-testid="stFileUploader"]:hover) .source-acquisition-icon {
+        transform: scale(1.05) !important;
+        box-shadow: 0 0 35px rgba(16, 185, 129, 0.5) !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # Generate custom head navigation matching the React header
 st.markdown("""
-<div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 5px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 25px;">
-    <div style="display: flex; align-items: center; gap: 12px;">
-        <div style="width: 32px; height: 32px; background-color: #10b981; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(16,185,129,0.35);">
-            <span style="font-size: 16px; color: black; font-weight: bold;">🧠</span>
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 5px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 35px; margin-top: -30px;">
+    <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 38px; height: 38px; background-color: #10b981; border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(16,185,129,0.35);">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="black" stroke-width="2.5" style="width: 20px; height: 20px;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1A3.75 3.75 0 0012 18z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 00-1.5 0v3.75a.75.75 0 001.5 0V6z"/>
+            </svg>
         </div>
-        <h1 style="font-size: 20px; font-weight: 600; color: white; margin: 0; font-family: -apple-system, sans-serif;">
-            Lumina<span style="color: #10b981; font-style: italic; font-family: serif;">AI</span> Study
+        <h1 style="font-size: 22px; font-weight: 600; color: white; margin: 0; font-family: 'Inter', sans-serif; letter-spacing: -0.5px;">
+            Lumina<span style="color: #10b981; font-style: italic; font-family: 'Playfair Display', serif; font-weight: 500;">AI</span> Study
         </h1>
     </div>
-    <div style="display: flex; align-items: center; gap: 10px;">
-        <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: #10b981; font-weight: bold; background-color: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); padding: 4px 10px; border-radius: 6px;">
-            🎓 Companion Engine Active
-        </span>
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 6px; border: 1px solid rgba(16,185,129,0.25); background-color: rgba(16,185,129,0.06); padding: 5px 12px; border-radius: 30px; box-shadow: 0 0 10px rgba(16,185,129,0.08);">
+            <span style="font-size: 11px; line-height: 1;">🏆</span>
+            <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #10b981; font-weight: 700; font-family: 'Inter', sans-serif;">
+                Study Dashboard
+            </span>
+        </div>
+        <div style="width: 32px; height: 32px; background-color: #0f0f0f; border: 1px solid rgba(255,255,255,0.08); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-style: italic; font-size: 12px; font-weight: bold; color: rgba(255,255,255,0.6); box-shadow: 0 2px 10px rgba(0,0,0,0.3);">
+            AI
+        </div>
     </div>
 </div>
-""", unsafe_allow_html=True)
 
 # Try loading PDF extraction library, provide native text box if library is not accessible
 try:
@@ -400,8 +451,80 @@ st.markdown("<h4 style='margin-top:0; color: rgba(255,255,255,0.4); font-size:12
 tab_workspace, tab_info = st.tabs(["📊 Workspace HUD", "🛠️ Windows & GitHub Guide"])
 
 with tab_workspace:
-    # 1. File Upload section
-    uploaded_file = st.file_uploader("Drop any research, notes, or syllabus PDF here", type=["pdf"])
+    # Check if a file has been actively registered
+    if not st.session_state.get("current_file"):
+        # Apply CSS to make uploader invisible and translated directly on top of card
+        st.markdown("""
+        <style>
+            div[data-testid="stFileUploader"] {
+                position: absolute !important;
+                transform: translateY(-430px) !important;
+                width: 100% !important;
+                max-width: 650px !important;
+                height: 380px !important;
+                opacity: 0.0 !important;
+                z-index: 10 !important;
+                margin-left: auto !important;
+                margin-right: auto !important;
+                left: 0 !important;
+                right: 0 !important;
+            }
+            div[data-testid="stFileUploader"] section[data-testid="stFileUploaderDropzone"] {
+                height: 380px !important;
+                cursor: pointer !important;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # Render the static beautiful card matching React Mockup
+        st.markdown("""
+        <div class="source-acquisition-container">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
+                <div class="source-acquisition-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="black" stroke-width="2.5" style="width: 28px; height: 28px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/>
+                    </svg>
+                </div>
+                <h2 style="font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 400; font-style: italic; color: #ffffff; margin-top: 0; margin-bottom: 12px; text-align: center; letter-spacing: -0.5px;">
+                    Source Acquisition
+                </h2>
+                <p style="color: rgba(255, 255, 255, 0.5); font-size: 14px; text-align: center; max-width: 420px; line-height: 1.6; margin: 0 auto; font-family: 'Inter', sans-serif; font-weight: 300;">
+                    Deploy your PDF document to initiate high-fidelity extraction and quiz generation.
+                </p>
+                <div style="display: flex; align-items: center; width: 100%; margin-top: 45px; padding: 0 20px;">
+                    <div style="flex-grow: 1; height: 1px; background: linear-gradient(to right, transparent, rgba(255,255,255,0.08), transparent);"></div>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #10b981; padding: 0 15px; letter-spacing: 3px; font-weight: 700; text-transform: uppercase;">Drag to Deploy</span>
+                    <div style="flex-grow: 1; height: 1px; background: linear-gradient(to right, transparent, rgba(255,255,255,0.08), transparent);"></div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        # File is active! Render compact normal style CSS to reset custom overlay
+        st.markdown("""
+        <style>
+            div[data-testid="stFileUploader"] {
+                position: static !important;
+                transform: none !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                height: auto !important;
+                opacity: 1.0 !important;
+                z-index: 1 !important;
+                margin-top: 0 !important;
+                margin-bottom: 25px !important;
+            }
+            div[data-testid="stFileUploader"] section[data-testid="stFileUploaderDropzone"] {
+                height: auto !important;
+                padding: 14px !important;
+                background-color: rgba(255, 255, 255, 0.02) !important;
+                border: 1px dashed rgba(255,255,255,0.08) !important;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+
+    # Render a single uploader widget safely!
+    uploaded_file = st.file_uploader("", type=["pdf"], key="pdf_source_uploader", label_visibility="collapsed")
     
     if uploaded_file is not None:
         if st.session_state.current_file != uploaded_file.name:
@@ -589,7 +712,11 @@ with tab_workspace:
                             st.rerun()
                             
     else:
-        st.info("📁 Upload an academic file or study guide PDF in the area above to dynamically extract materials!")
+        # No file is currently uploaded, clean active memory caches
+        st.session_state.current_file = None
+        st.session_state.study_data = None
+        st.session_state.quiz_answers = {}
+        st.session_state.quiz_submitted = False
 
 with tab_info:
     st.markdown("""
@@ -617,3 +744,22 @@ with tab_info:
     3. Select your repository `lumina-ai-study-companion` and set the main file path of your deployment to `app.py`.
     4. Click **Deploy!** Your app is now active for assessors and teachers worldwide to run safely with zero setups!
     """)
+
+# Permanent elegant carbon footer matching React UI bottom bar exactly
+st.markdown("""
+<div style="display: flex; align-items: center; justify-content: space-between; padding-top: 40px; margin-top: 80px; border-top: 1px solid rgba(255,255,255,0.05); color: rgba(255,255,255,0.25); font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 1.5px; width: 100%;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="color: #10b981; font-size: 8px; animation: pulse 2.5s infinite;">●</span> SECURE PDF PIPELINE &nbsp;|&nbsp; EXTRACTION VER 1.5.24
+    </div>
+    <div>
+        © 2026 LUMEN SYSTEMS · HIGH FIDELITY REASONING ENGINE
+    </div>
+</div>
+<style>
+@keyframes pulse {
+    0% { opacity: 0.35; }
+    50% { opacity: 1; }
+    100% { opacity: 0.35; }
+}
+</style>
+""", unsafe_allow_html=True)
