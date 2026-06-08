@@ -454,69 +454,59 @@ tab_workspace, tab_info = st.tabs(["📊 Workspace HUD", "🛠️ Windows & GitH
 with tab_workspace:
     # Check if a file has been actively registered
     if not st.session_state.get("current_file"):
-        # Apply CSS to make uploader invisible and translated directly on top of card
+        # Render the static beautiful card matching React Design with native styling
         st.markdown("""
-        <style>
-            div[data-testid="stFileUploader"] {
-                position: absolute !important;
-                transform: translateY(-430px) !important;
-                width: 100% !important;
-                max-width: 650px !important;
-                height: 380px !important;
-                opacity: 0.0 !important;
-                z-index: 10 !important;
-                margin-left: auto !important;
-                margin-right: auto !important;
-                left: 0 !important;
-                right: 0 !important;
-            }
-            div[data-testid="stFileUploader"] section[data-testid="stFileUploaderDropzone"] {
-                height: 380px !important;
-                cursor: pointer !important;
-            }
-        </style>
-        """, unsafe_allow_html=True)
-        
-        # Render the static beautiful card matching React Mockup
-        st.markdown("""
-        <div class="source-acquisition-container">
+        <div class="source-acquisition-container" style="max-width: 650px; margin: 30px auto 15px auto; padding: 40px; background-color: #0b0b0b; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
-                <div class="source-acquisition-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="black" stroke-width="2.5" style="width: 28px; height: 28px;">
+                <div class="source-acquisition-icon" style="width: 58px; height: 58px; background-color: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(16,185,129,0.3); margin-bottom: 20px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="black" stroke-width="2.5" style="width: 24px; height: 24px;">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/>
                     </svg>
                 </div>
-                <h2 style="font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 400; font-style: italic; color: #ffffff; margin-top: 0; margin-bottom: 12px; text-align: center; letter-spacing: -0.5px;">
+                <h2 style="font-family: 'Playfair Display', serif; font-size: 30px; font-weight: 400; font-style: italic; color: #ffffff; margin-top: 0; margin-bottom: 12px; text-align: center; letter-spacing: -0.5px;">
                     Source Acquisition
                 </h2>
-                <p style="color: rgba(255, 255, 255, 0.5); font-size: 14px; text-align: center; max-width: 420px; line-height: 1.6; margin: 0 auto; font-family: 'Inter', sans-serif; font-weight: 300;">
-                    Deploy your PDF document to initiate high-fidelity extraction and quiz generation.
+                <p style="color: rgba(255, 255, 255, 0.5); font-size: 14px; text-align: center; max-width: 440px; line-height: 1.6; margin: 0 auto; font-family: 'Inter', sans-serif; font-weight: 300;">
+                    Upload your PDF document below to initiate high-fidelity extraction, keycards study, and practice quiz generation under extreme hardware acceleration.
                 </p>
-                <div style="display: flex; align-items: center; width: 100%; margin-top: 45px; padding: 0 20px;">
+                <div style="display: flex; align-items: center; width: 100%; margin-top: 30px; padding: 0 20px;">
                     <div style="flex-grow: 1; height: 1px; background: linear-gradient(to right, transparent, rgba(255,255,255,0.08), transparent);"></div>
-                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #10b981; padding: 0 15px; letter-spacing: 3px; font-weight: 700; text-transform: uppercase;">Drag to Deploy</span>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #10b981; padding: 0 15px; letter-spacing: 3px; font-weight: 700; text-transform: uppercase;">Ready to Deploy</span>
                     <div style="flex-grow: 1; height: 1px; background: linear-gradient(to right, transparent, rgba(255,255,255,0.08), transparent);"></div>
                 </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
-    else:
-        # File is active! Render compact normal style CSS to reset custom overlay
+        
+        # Style the native file uploader elegantly
         st.markdown("""
         <style>
             div[data-testid="stFileUploader"] {
-                position: static !important;
-                transform: none !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                height: auto !important;
-                opacity: 1.0 !important;
-                z-index: 1 !important;
-                margin-top: 0 !important;
-                margin-bottom: 25px !important;
+                max-width: 650px !important;
+                margin: 0 auto 40px auto !important;
             }
             div[data-testid="stFileUploader"] section[data-testid="stFileUploaderDropzone"] {
-                height: auto !important;
+                background-color: #0d0d0d !important;
+                border: 1px dashed rgba(16, 185, 129, 0.25) !important;
+                border-radius: 14px !important;
+                padding: 24px !important;
+                transition: all 0.3s ease;
+            }
+            div[data-testid="stFileUploader"] section[data-testid="stFileUploaderDropzone"]:hover {
+                border-color: #10b981 !important;
+                background-color: rgba(16, 185, 129, 0.03) !important;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+    else:
+        # File is active! Render compact normal style CSS to reset uploader layout beautifully
+        st.markdown("""
+        <style>
+            div[data-testid="stFileUploader"] {
+                max-width: 100% !important;
+                margin: 0 auto 25px auto !important;
+            }
+            div[data-testid="stFileUploader"] section[data-testid="stFileUploaderDropzone"] {
                 padding: 14px !important;
                 background-color: rgba(255, 255, 255, 0.02) !important;
                 border: 1px dashed rgba(255,255,255,0.08) !important;
